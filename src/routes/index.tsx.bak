@@ -1,0 +1,169 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useState, type ReactNode } from "react";
+import {
+  Activity, ArrowLeft, Award, BarChart3, BookOpen, Brain, Calculator,
+  CheckCircle2, ChevronLeft, CircleHelp, ClipboardList, Flame, Gauge,
+  GraduationCap, LayoutDashboard, LineChart, Menu, Moon, NotebookPen,
+  PlayCircle, Plus, Rocket, Settings, ShieldCheck, Sparkles, Target,
+  TrendingUp, Trophy, UserRound, Wallet, X, Sun, Bot, Layers3
+} from "lucide-react";
+import { foundations } from "../content/levels/foundations";
+import { charts } from "../content/levels/charts";
+import { risk } from "../content/levels/risk";
+import { technical, priceAction, strategies, psychology, backtesting, professional } from "../content/levels/advanced";
+import type { Course, Lesson } from "../content/types";
+
+export const Route = createFileRoute("/")({ component: App });
+
+const courses: Course[] = [foundations, charts, technical, priceAction, risk, strategies, psychology, backtesting, professional];
+
+const nav = [
+  ["dashboard", "الرئيسية", LayoutDashboard],
+  ["learning", "مسار التعلم", GraduationCap],
+  ["practice", "التدريب التفاعلي", Target],
+  ["simulator", "محاكي الشارت", LineChart],
+  ["risk", "حاسبة المخاطر", Calculator],
+  ["journal", "سجل التداول", NotebookPen],
+  ["strategies", "مختبر الاستراتيجيات", Layers3],
+  ["ai", "المدرب الذكي", Bot],
+  ["progress", "تقدمي", BarChart3],
+];
+
+const levelColors = ["from-emerald-500/20", "from-cyan-500/20", "from-violet-500/20", "from-amber-500/20"];
+
+function App() {
+  const [page, setPage] = useState("dashboard");
+  const [dark, setDark] = useState(true);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState<Course>(foundations);
+  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
+  const [riskData, setRiskData] = useState({ balance: 1000, risk: 1, entry: 100, stop: 95, target: 115 });
+  const [journal, setJournal] = useState<Array<{asset:string; side:string; entry:string; result:string}>>([]);
+  const [journalForm, setJournalForm] = useState({asset:"BTCUSDT", side:"Long", entry:"", result:""});
+  const [chat, setChat] = useState<Array<{role:string;text:string}>>([{role:"ai", text:"مرحبًا! أنا مدربك الذكي. اسألني عن أي مفهوم تداول، وسأشرحه لك ببساطة ثم أختبر فهمك."}]);
+  const [question, setQuestion] = useState("");
+
+  const lessonCount = courses.reduce((n,c)=>n+c.lessons.length,0);
+  const completed = Math.round(lessonCount * 0.24);
+  const riskAmount = riskData.balance * riskData.risk / 100;
+  const distance = Math.abs(riskData.entry - riskData.stop);
+  const position = distance ? riskAmount / distance : 0;
+  const reward = Math.abs(riskData.target - riskData.entry) * position;
+  const rr = riskAmount ? reward / riskAmount : 0;
+
+  const openLesson = (course: Course, lesson: Lesson) => {
+    setSelectedCourse(course); setSelectedLesson(lesson); setPage("lesson"); setMobileOpen(false);
+  };
+
+  const sendAI = () => {
+    if (!question.trim()) return;
+    const q = question.trim();
+    setChat(c => [...c, {role:"user",text:q},{role:"ai",text:`سؤالك: «${q}»\n\nقاعدة المدرب: لا أقدم إشارة شراء أو بيع مضمونة. ابدأ بتحديد الاتجاه، منطقة القرار، نقطة إبطال الفكرة، ثم المخاطرة قبل التفكير في الدخول.`}]);
+    setQuestion("");
+  };
+
+  const render = () => {
+    if (page === "lesson" && selectedLesson) return <LessonPlayer course={selectedCourse} lesson={selectedLesson} onBack={()=>setPage("learning")} />;
+    if (page === "learning") return <Learning courses={courses} selectedCourse={selectedCourse} setSelectedCourse={setSelectedCourse} openLesson={openLesson} />;
+    if (page === "practice") return <Practice />;
+    if (page === "simulator") return <Simulator />;
+    if (page === "risk") return <RiskCalc data={riskData} setData={setRiskData} riskAmount={riskAmount} position={position} reward={reward} rr={rr} />;
+    if (page === "journal") return <Journal form={journalForm} setForm={setJournalForm} rows={journal} add={()=>{if(journalForm.asset){setJournal(j=>[journalForm,...j]);setJournalForm({asset:"BTCUSDT",side:"Long",entry:"",result:""})}}} />;
+    if (page === "strategies") return <Strategies />;
+    if (page === "ai") return <AITutor chat={chat} question={question} setQuestion={setQuestion} send={sendAI} />;
+    if (page === "progress") return <Progress />;
+    return <Dashboard onContinue={()=>{setPage("learning");setSelectedCourse(foundations)}} openLesson={openLesson} />;
+  };
+
+  return (
+    <div dir="rtl" className={dark ? "app dark" : "app"}>
+      <div className="min-h-screen bg-background text-foreground">
+        <aside className={`fixed inset-y-0 right-0 z-40 w-72 border-l border-border bg-card/95 backdrop-blur-xl transition-transform lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "translate-x-full"}`}>
+          <div className="flex h-full flex-col p-4">
+            <div className="mb-6 flex items-center justify-between px-2">
+              <div className="flex items-center gap-3">
+                <div className="grid size-11 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg"><TrendingUp size={23}/></div>
+                <div><div className="font-black text-lg">TradeMaster</div><div className="text-xs text-muted-foreground">أكاديمية المتداول</div></div>
+              </div>
+              <button className="lg:hidden" onClick={()=>setMobileOpen(false)}><X/></button>
+            </div>
+            <div className="mb-4 rounded-2xl border border-primary/20 bg-primary/10 p-4">
+              <div className="flex items-center justify-between text-xs"><span>المستوى 2</span><span className="font-bold text-primary">24%</span></div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full w-[24%] rounded-full bg-primary"/></div>
+              <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground"><Flame size={13}/> 5 أيام متتالية • 1,240 XP</div>
+            </div>
+            <nav className="space-y-1 overflow-y-auto">
+              {nav.map(([id,label,Icon]) => <button key={id as string} onClick={()=>{setPage(id as string);setMobileOpen(false)}} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${page===id ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}><Icon size={18}/>{label as string}</button>)}
+            </nav>
+            <div className="mt-auto space-y-1 border-t border-border pt-3">
+              <button onClick={()=>setDark(v=>!v)} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-muted-foreground hover:bg-muted">{dark?<Sun size={18}/>:<Moon size={18}/>} {dark?"الوضع الفاتح":"الوضع الداكن"}</button>
+              <button onClick={()=>setPage("profile")} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-muted-foreground hover:bg-muted"><Settings size={18}/> الإعدادات</button>
+            </div>
+          </div>
+        </aside>
+
+        {mobileOpen && <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={()=>setMobileOpen(false)}/>}
+        <main className="min-h-screen lg:mr-72">
+          <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-border bg-background/85 px-4 backdrop-blur-xl lg:px-8">
+            <button className="lg:hidden" onClick={()=>setMobileOpen(true)}><Menu/></button>
+            <div className="hidden lg:block text-sm text-muted-foreground">{page === "dashboard" ? "لوحة التحكم" : "TradeMaster Academy"}</div>
+            <div className="flex items-center gap-3 mr-auto">
+              <div className="hidden sm:flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs"><Flame size={14} className="text-amber-500"/> 5 أيام</div>
+              <div className="grid size-9 place-items-center rounded-full bg-primary/15 text-primary font-bold">أ</div>
+            </div>
+          </header>
+          <section className="mx-auto max-w-7xl p-4 pb-24 sm:p-6 lg:p-8">{render()}</section>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function Header({eyebrow,title,desc}:{eyebrow?:string;title:string;desc?:string}) {
+  return <div className="mb-7"><div className="mb-1 text-xs font-bold uppercase tracking-wider text-primary">{eyebrow}</div><h1 className="text-2xl font-black sm:text-3xl">{title}</h1>{desc&&<p className="mt-2 max-w-3xl text-sm text-muted-foreground">{desc}</p>}</div>
+}
+
+function Card({children,className=""}:{children:ReactNode;className?:string}) { return <div className={`rounded-2xl border border-border bg-card shadow-sm ${className}`}>{children}</div> }
+
+function Dashboard({onContinue,openLesson}:{onContinue:()=>void;openLesson:(c:Course,l:Lesson)=>void}) {
+  const next = foundations.lessons[1] || foundations.lessons[0];
+  return <div>
+    <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/15 via-card to-card p-6 sm:p-8">
+      <div className="absolute -left-16 -top-20 size-56 rounded-full bg-primary/10 blur-3xl"/>
+      <div className="relative max-w-3xl"><div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold text-primary"><Sparkles size={14}/> مسارك نحو الاحتراف</div><h1 className="text-3xl font-black sm:text-4xl">ابنِ مهارة التداول، لا تبحث عن الإشارات.</h1><p className="mt-3 leading-7 text-muted-foreground">تعلم خطوة بخطوة، اختبر فهمك، تدرب على الشارت، واحسب المخاطرة قبل أن تفكر في الصفقة.</p><button onClick={onContinue} className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 font-bold text-primary-foreground shadow-lg shadow-primary/20">تابع التعلم <ChevronLeft size={18}/></button></div>
+    </div>
+    <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {[["1,240","XP","text-primary",Rocket],["5","أيام متتالية","text-amber-500",Flame],["24%","إكمال المنهج","text-cyan-500",GraduationCap],["81","درسًا متاحًا","text-violet-500",BookOpen]].map(([v,l,c,I])=><Card key={l as string} className="p-5"><div className={`mb-4 grid size-10 place-items-center rounded-xl bg-muted ${c}`}><I size={19}/></div><div className="text-2xl font-black">{v as string}</div><div className="mt-1 text-xs text-muted-foreground">{l as string}</div></Card>)}
+    </div>
+    <div className="mt-6 grid gap-6 xl:grid-cols-[1.35fr_.65fr]">
+      <Card className="p-5 sm:p-6"><div className="flex items-center justify-between"><div><h2 className="font-black">أكمل من حيث توقفت</h2><p className="mt-1 text-xs text-muted-foreground">{foundations.title}</p></div><span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">24%</span></div><div className="mt-5 flex gap-4 rounded-2xl bg-muted/50 p-4"><div className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary"><PlayCircle/></div><div className="min-w-0 flex-1"><div className="font-bold">{next.title}</div><div className="mt-1 line-clamp-2 text-xs text-muted-foreground">{next.objective}</div><button onClick={()=>openLesson(foundations,next)} className="mt-3 text-xs font-bold text-primary">ابدأ الدرس ←</button></div></div></Card>
+      <Card className="p-5"><h2 className="font-black">مهاراتك</h2><div className="mt-4 space-y-4">{[["الأساسيات",82],["هيكل السوق",68],["إدارة المخاطر",54],["علم النفس",32]].map(([n,v])=><div key={n as string}><div className="mb-1 flex justify-between text-xs"><span>{n as string}</span><span className="font-bold">{v}%</span></div><div className="h-2 rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{width:`${v}%`}}/></div></div>)}</div></Card>
+    </div>
+    <div className="mt-6"><h2 className="mb-4 text-lg font-black">أقسام المنهج</h2><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{courses.slice(0,6).map((c,i)=><button onClick={()=>{onContinue();}} key={c.slug} className="text-right"><Card className="h-full p-4 transition hover:-translate-y-0.5 hover:border-primary/40"><div className="flex items-center gap-3"><div className={`grid size-11 place-items-center rounded-xl bg-gradient-to-br ${levelColors[i%4]} to-transparent`}><BookOpen size={19}/></div><div className="min-w-0"><div className="font-bold">{c.title}</div><div className="text-xs text-muted-foreground">{c.lessons.length} درس</div></div></div></Card></button>)}</div></div>
+  </div>
+}
+
+function Learning({courses,selectedCourse,setSelectedCourse,openLesson}:{courses:Course[];selectedCourse:Course;setSelectedCourse:(c:Course)=>void;openLesson:(c:Course,l:Lesson)=>void}) {
+  return <div><Header eyebrow="Learning Path" title="مسار التعلم" desc="من الأساسيات إلى بناء نظام تداول احترافي. كل درس قصير وينتهي بتطبيق أو اختبار."/><div className="grid gap-6 lg:grid-cols-[280px_1fr]"><Card className="p-3 h-fit lg:sticky lg:top-24">{courses.map((c,i)=><button key={c.slug} onClick={()=>setSelectedCourse(c)} className={`mb-1 flex w-full items-center gap-3 rounded-xl p-3 text-right ${selectedCourse.slug===c.slug?"bg-primary text-primary-foreground":"hover:bg-muted"}`}><span className="grid size-9 shrink-0 place-items-center rounded-lg bg-muted/70 text-xs font-black">{i+1}</span><span className="min-w-0 flex-1"><span className="block text-sm font-bold">{c.title}</span><span className="block text-[11px] opacity-70">{c.lessons.length} درس</span></span></button>)}</Card><div><Card className="mb-5 overflow-hidden"><div className="bg-gradient-to-l from-primary/15 to-transparent p-6"><div className="text-xs font-bold text-primary">المستوى {selectedCourse.order}</div><h2 className="mt-1 text-2xl font-black">{selectedCourse.title}</h2><p className="mt-2 text-sm text-muted-foreground">{selectedCourse.subtitle}</p><div className="mt-5 h-2 rounded-full bg-muted"><div className="h-full w-[18%] rounded-full bg-primary"/></div></div></Card><div className="space-y-3">{selectedCourse.lessons.map((l,i)=><button key={l.slug} onClick={()=>openLesson(selectedCourse,l)} className="w-full text-right"><Card className="p-4 transition hover:border-primary/40 hover:bg-muted/30"><div className="flex items-center gap-4"><div className="grid size-10 shrink-0 place-items-center rounded-xl bg-muted text-sm font-black">{i+1}</div><div className="min-w-0 flex-1"><div className="font-bold">{l.title}</div><div className="mt-1 text-xs text-muted-foreground line-clamp-1">{l.objective}</div></div><ChevronLeft className="text-muted-foreground" size={18}/></div></Card></button>)}</div></div></div></div>
+}
+
+function LessonPlayer({course,lesson,onBack}:{course:Course;lesson:Lesson;onBack:()=>void}) {
+  const [selected,setSelected]=useState<number|null>(null);
+  const [done,setDone]=useState(false);
+  const q=lesson.questions[0];
+  return <div className="mx-auto max-w-4xl"><button onClick={onBack} className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground"><ArrowLeft size={17}/> العودة للمستوى</button><Card className="overflow-hidden"><div className="border-b border-border bg-gradient-to-l from-primary/15 to-transparent p-6 sm:p-8"><div className="text-xs font-bold text-primary">{course.title}</div><h1 className="mt-2 text-2xl font-black">{lesson.title}</h1><p className="mt-2 text-sm text-muted-foreground">{lesson.objective}</p></div><div className="space-y-7 p-6 sm:p-8"><div><h2 className="mb-3 text-lg font-black">شرح مبسط</h2><p className="leading-8 text-muted-foreground">{lesson.explanation}</p></div><div><h2 className="mb-3 text-lg font-black">النقاط الأساسية</h2><ul className="space-y-2">{lesson.keyPoints.map((x,i)=><li key={i} className="flex gap-2 text-sm"><CheckCircle2 size={18} className="mt-0.5 shrink-0 text-primary"/><span>{x}</span></li>)}</ul></div>{q&&<div className="rounded-2xl border border-primary/20 bg-primary/5 p-5"><div className="mb-3 flex items-center gap-2 text-xs font-bold text-primary"><CircleHelp size={16}/> اختبر فهمك</div><h3 className="font-bold leading-7">{q.prompt}</h3>{q.type==="mcq"&&<div className="mt-4 grid gap-2">{q.options.map((o,i)=><button key={i} onClick={()=>setSelected(i)} className={`rounded-xl border p-3 text-right text-sm ${selected===i?"border-primary bg-primary/10":"border-border hover:bg-muted"}`}>{o}</button>)}</div>}{selected!==null&&<div className="mt-4 rounded-xl bg-muted p-3 text-sm">{selected===q.answer?"✅ إجابة صحيحة!":"❌ ليست الإجابة الصحيحة. راجع النقاط الأساسية ثم حاول مرة أخرى."}</div>}</div>}<button onClick={()=>setDone(true)} className="w-full rounded-xl bg-primary py-3 font-bold text-primary-foreground">{done?"✓ تم إكمال الدرس":"إكمال الدرس +50 XP"}</button></div></Card></div>
+}
+
+function Practice(){return <div><Header eyebrow="Practice" title="التدريب التفاعلي" desc="حوّل المعرفة إلى مهارة قبل أن تخاطر بأموال حقيقية."/><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{[["اقرأ الاتجاه","حدد HH / HL / LH / LL على شارت بسيط",TrendingUp],["ابحث عن الدعم","حدد المنطقة التي دافع عنها السعر",Target],["اختبار المخاطرة","احسب حجم الصفقة من وقف الخسارة",ShieldCheck],["شمعة اليوم","تعرف على بنية الشمعة",BarChart3],["Breakout أم Fakeout؟","اتخذ قرارًا ثم اكشف النتيجة",Activity],["تحدي سريع","10 أسئلة عشوائية من المنهج",Trophy]].map(([t,d,I])=><Card key={t as string} className="p-5"><div className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary"><I/></div><h3 className="mt-4 font-black">{t as string}</h3><p className="mt-1 text-xs leading-6 text-muted-foreground">{d as string}</p><button className="mt-4 text-xs font-bold text-primary">ابدأ التمرين ←</button></Card>)}</div></div>}
+
+function Simulator(){const [pos,setPos]=useState(55);return <div><Header eyebrow="Chart Simulator" title="محاكي الشارت" desc="تدرب على قراءة السعر بدون أموال حقيقية."/><Card className="overflow-hidden"><div className="flex items-center justify-between border-b border-border p-4"><div className="font-bold">BTC / USDT · 1H</div><div className="text-xs text-muted-foreground">وضع التدريب</div></div><div className="relative h-[380px] bg-[#07110f] p-4">{Array.from({length:12}).map((_,i)=><div key={i} className="absolute left-0 right-0 border-t border-white/5" style={{top:`${i*8.3}%`}}/>)}<svg className="relative h-full w-full" viewBox="0 0 900 350" preserveAspectRatio="none">{Array.from({length:42}).map((_,i)=>{const x=20+i*21; const base=245-i*2.8+Math.sin(i/2)*25; const hi=base-25-Math.abs(Math.sin(i))*15; const lo=base+30+Math.abs(Math.cos(i))*10; const open=base+Math.sin(i*1.7)*12; const close=base+Math.cos(i*1.2)*15; const up=close<open; return <g key={i} stroke={up?"#34d399":"#fb7185"}><line x1={x} x2={x} y1={hi} y2={lo}/><rect x={x-5} y={Math.min(open,close)} width="10" height={Math.max(3,Math.abs(close-open))} fill={up?"#34d399":"#fb7185"}/></g>})}</svg><div className="absolute inset-x-6 top-[42%] border-t border-dashed border-amber-400/70"/><div className="absolute inset-x-6 top-[42%] -mt-6 text-left text-[10px] text-amber-300">منطقة القرار</div></div><div className="grid gap-3 border-t border-border p-4 sm:grid-cols-3"><button onClick={()=>setPos(p=>Math.max(10,p-5))} className="rounded-xl border border-border py-2 text-sm">← تحرك للخلف</button><div className="grid place-items-center rounded-xl bg-muted text-xs">شمعة {Math.round(pos)}</div><button onClick={()=>setPos(p=>Math.min(90,p+5))} className="rounded-xl bg-primary py-2 text-sm font-bold text-primary-foreground">التالي →</button></div></Card></div>}
+
+function RiskCalc({data,setData,riskAmount,position,reward,rr}:{data:any;setData:(x:any)=>void;riskAmount:number;position:number;reward:number;rr:number}){const set=(k:string,v:string)=>setData({...data,[k]:Number(v)||0});return <div><Header eyebrow="Risk Management" title="حاسبة المخاطر" desc="حدد الخسارة المحتملة قبل أن تدخل الصفقة. المخاطرة أهم من توقع السعر."/><div className="grid gap-6 lg:grid-cols-[1fr_360px]"><Card className="p-5 sm:p-7"><div className="grid gap-4 sm:grid-cols-2">{[["balance","رصيد الحساب"],["risk","المخاطرة %"],["entry","سعر الدخول"],["stop","وقف الخسارة"],["target","جني الربح"]].map(([k,l])=><label key={k} className="block"><span className="mb-2 block text-xs font-bold text-muted-foreground">{l}</span><input type="number" value={data[k]} onChange={e=>set(k,e.target.value)} className="w-full rounded-xl border border-border bg-background px-4 py-3 outline-none focus:border-primary"/></label>)}</div></Card><div className="space-y-3"><Card className="p-5"><div className="text-xs text-muted-foreground">المبلغ المعرض للخطر</div><div className="mt-1 text-3xl font-black text-destructive">${riskAmount.toFixed(2)}</div><div className="mt-4 grid grid-cols-2 gap-3"><div className="rounded-xl bg-muted p-3"><div className="text-[11px] text-muted-foreground">حجم المركز</div><div className="mt-1 font-black">{position.toFixed(3)}</div></div><div className="rounded-xl bg-muted p-3"><div className="text-[11px] text-muted-foreground">R:R</div><div className="mt-1 font-black">{rr.toFixed(2)}R</div></div></div></Card><Card className="p-5"><div className="text-xs text-muted-foreground">الربح المحتمل</div><div className="mt-1 text-2xl font-black text-primary">${reward.toFixed(2)}</div><p className="mt-3 text-xs leading-5 text-muted-foreground">هذه حاسبة تعليمية وليست توصية استثمارية.</p></Card></div></div></div>}
+
+function Journal({form,setForm,rows,add}:{form:any;setForm:(x:any)=>void;rows:any[];add:()=>void}){return <div><Header eyebrow="Trading Journal" title="سجل التداول" desc="الهدف ليس تسجيل الأرباح فقط؛ بل معرفة هل التزمت بنظامك."/><Card className="p-5"><div className="grid gap-3 sm:grid-cols-4"><input placeholder="الأصل" value={form.asset} onChange={e=>setForm({...form,asset:e.target.value})} className="rounded-xl border border-border bg-background px-3 py-2 text-sm"/><select value={form.side} onChange={e=>setForm({...form,side:e.target.value})} className="rounded-xl border border-border bg-background px-3 py-2 text-sm"><option>Long</option><option>Short</option></select><input placeholder="سعر الدخول" value={form.entry} onChange={e=>setForm({...form,entry:e.target.value})} className="rounded-xl border border-border bg-background px-3 py-2 text-sm"/><input placeholder="النتيجة" value={form.result} onChange={e=>setForm({...form,result:e.target.value})} className="rounded-xl border border-border bg-background px-3 py-2 text-sm"/></div><button onClick={add} className="mt-3 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"><Plus size={16}/> إضافة صفقة</button></Card><Card className="mt-5 overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-right text-sm"><thead className="bg-muted/60 text-xs text-muted-foreground"><tr><th className="p-4">الأصل</th><th>الاتجاه</th><th>الدخول</th><th>النتيجة</th></tr></thead><tbody>{rows.length?rows.map((r,i)=><tr key={i} className="border-t border-border"><td className="p-4 font-bold">{r.asset}</td><td>{r.side}</td><td>{r.entry||"—"}</td><td>{r.result||"—"}</td></tr>):<tr><td colSpan={4} className="p-10 text-center text-muted-foreground">لا توجد صفقات بعد. ابدأ بتسجيل أول صفقة تدريبية.</td></tr>}</tbody></table></div></Card></div>}
+
+function Strategies(){return <div><Header eyebrow="Strategy Lab" title="مختبر الاستراتيجيات" desc="حوّل أفكارك إلى قواعد قابلة للاختبار بدل الدخول بناءً على الإحساس."/><div className="grid gap-4 lg:grid-cols-3">{[["Trend Pullback","اتجاه واضح + عودة لمنطقة قيمة + تأكيد","1H / 4H"],["Breakout Retest","اختراق + إعادة اختبار + إبطال واضح","15m / 1H"],["Range Reversion","شراء قرب الحد السفلي وبيع قرب العلوي بشروط","15m / 1H"]].map(([t,d,tf])=><Card key={t} className="p-5"><div className="flex items-center justify-between"><div className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary"><Layers3/></div><span className="rounded-full bg-muted px-2 py-1 text-[10px]">{tf}</span></div><h3 className="mt-4 font-black">{t}</h3><p className="mt-2 text-xs leading-6 text-muted-foreground">{d}</p><div className="mt-4 grid grid-cols-3 gap-2 text-center text-[10px]"><div className="rounded-lg bg-muted p-2">الدخول<br/><b>Rule</b></div><div className="rounded-lg bg-muted p-2">الإبطال<br/><b>SL</b></div><div className="rounded-lg bg-muted p-2">العائد<br/><b>TP</b></div></div></Card>)}</div></div>}
+
+function AITutor({chat,question,setQuestion,send}:{chat:any[];question:string;setQuestion:(x:string)=>void;send:()=>void}){return <div className="mx-auto max-w-4xl"><Header eyebrow="AI Trading Tutor" title="المدرب الذكي" desc="تعلم بالحوار. اطلب شرحًا، ثم اطلب من المدرب أن يختبرك."/><Card className="flex min-h-[560px] flex-col overflow-hidden"><div className="flex items-center gap-3 border-b border-border p-4"><div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary"><Bot/></div><div><div className="font-black">TradeMaster Coach</div><div className="text-xs text-primary">وضع تعليمي • لا إشارات مضمونة</div></div></div><div className="flex-1 space-y-4 overflow-y-auto p-5">{chat.map((m,i)=><div key={i} className={`max-w-[85%] rounded-2xl p-4 text-sm leading-7 ${m.role==="user"?"mr-auto bg-primary text-primary-foreground":"bg-muted"}`}>{m.text}</div>)}</div><div className="border-t border-border p-4"><div className="flex gap-2"><input value={question} onChange={e=>setQuestion(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="مثال: اشرح لي الفرق بين Breakout وFakeout" className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary"/><button onClick={send} className="grid size-12 place-items-center rounded-xl bg-primary text-primary-foreground"><ArrowLeft/></button></div></div></Card></div>}
+
+function Progress(){return <div><Header eyebrow="Progress" title="تقدمك ومهاراتك" desc="لا تنتقل بسرعة. ابْنِ نقاط قوتك وأصلح نقاط ضعفك."/><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{[["الأساسيات",82,"متقدم"],["الشموع اليابانية",76,"جيد"],["هيكل السوق",68,"جيد"],["التحليل الفني",61,"تحت التطوير"],["إدارة المخاطر",54,"تحتاج تدريب"],["علم النفس",32,"أولوية"],["الاستراتيجيات",28,"أولوية"],["Backtesting",15,"مبتدئ"],["الاحتراف",8,"مبتدئ"]].map(([n,v,s])=><Card key={n} className="p-5"><div className="flex items-center justify-between"><span className="font-bold">{n}</span><span className="text-xs text-muted-foreground">{s}</span></div><div className="mt-4 h-2 rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{width:`${v}%`}}/></div><div className="mt-2 text-left text-xs font-black">{v}%</div></Card>)}</div><Card className="mt-6 p-6"><div className="flex items-center gap-4"><div className="grid size-14 place-items-center rounded-2xl bg-amber-500/10 text-amber-500"><Award/></div><div><div className="font-black">المحطة القادمة</div><p className="mt-1 text-sm text-muted-foreground">أكمل تمارين إدارة المخاطر قبل الانتقال إلى التداول بالرافعة.</p></div></div></Card></div>}
